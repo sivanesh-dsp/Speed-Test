@@ -31,7 +31,7 @@ jobs:
       run: docker build -t speed-test .
 
     - name: Tag Docker image
-      run: docker tag speed-test:latest ${{ steps.ecr.outputs.uri}}:${{ github.sha }}
+      run: docker tag speed-test:latest ${{ steps.ecr.outputs.uri }}:${{ github.sha }}
 
     - name: Push Docker image to ECR
       run: docker push ${{ steps.ecr.outputs.uri}}:${{ github.sha }}
