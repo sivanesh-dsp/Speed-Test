@@ -1,8 +1,5 @@
 name: Build and deploy a container to an Amazon Container Registry
 
-env:
-  AZURE_WEBAPP_NAME: reviews-app 
-
 on:
   push:
     branches: [ "main" ]
@@ -27,7 +24,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registry-type: private
-          region: ${{ secrets.AWS_REGION }}
+          # region: ${{ secrets.AWS_REGION }}
 
       - name: Extract ECR repository URI
         id: ecr
@@ -47,3 +44,5 @@ jobs:
       - name: Verify Docker image
         run: |
           docker pull ${{ steps.ecr.outputs.uri }}:latest
+
+      
