@@ -37,9 +37,6 @@ jobs:
         id: ecr
         run: |
           echo "::set-output name=uri::$(aws ecr describe-repositories --repository-names speed-test --region ${{ secrets.AWS_REGION }} --query "repositories[0].repositoryUri" --output text)"
-      
-      - name: Print ECR URI
-        run: echo ${{ steps.ecr.outputs.uri }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -53,6 +50,28 @@ jobs:
       
       - name: Verify Docker image
         run: |
-          docker pull ${{ steps.ecr.outputs.uri }}:latest
+          docker pull ${{ steps.ecr.outputs.uri }}:${{ github.sha }}
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Deploy to ECS
+      run: |
+        aws ecs update-service --cluster speed-test --service my-service --force-new-deployment
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
 
       
