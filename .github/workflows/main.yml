@@ -2,7 +2,6 @@ name: Build and deploy a container to an Amazon Container Registry
 
 env:
   app-name: speed-test
-  verion: $(echo $GITHUB_SHA | cut -c1-5)
 
 on:
   push:
@@ -46,7 +45,9 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: ${{ steps.ecr.outputs.uri }}:${{ env.version }}
+          run: |
+            SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-5)
+          tags: ${{ steps.ecr.outputs.uri }}:${SHORT_SHA}
           file: ./Dockerfile
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
