@@ -1,0 +1,49 @@
+name: Build and deploy a container to an Amazon Container Registry
+
+env:
+  AZURE_WEBAPP_NAME: reviews-app 
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code 
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: private
+          region: ${{ secrets.AWS_REGION }}
+
+      - name: Extract ECR repository URI
+        id: ecr
+        run: |
+          echo "::set-output name=uri::$(aws ecr describe-repositories --repository-names my-repo --region ${{ secrets.AWS_REGION }} --query "repositories[0].repositoryUri" --output text)"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Build and push Docker image
+        run: |
+          docker buildx build --platform linux/amd64 -t ${{ steps.ecr.outputs.uri }}:latest --push .
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      
+      - name: Verify Docker image
+        run: |
+          docker pull ${{ steps.ecr.outputs.uri }}:latest
