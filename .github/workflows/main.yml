@@ -43,11 +43,11 @@ jobs:
 
       - name: Build and push container image to registry
         uses: docker/build-push-action@v3
-        with:
-          push: true
-          run: |
+        run: |
             SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-5)
             IMAGE_TAG="${{ steps.ecr.outputs.uri }}:${SHORT_SHA}"
+        with:
+          push: true          
           tags: $IMAGE_TAG
           file: ./Dockerfile
         env:
