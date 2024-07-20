@@ -2,7 +2,7 @@ name: Build and deploy a container to an Amazon Container Registry
 
 env:
   app-name: speed-test
-  verion: $($GITHUB_SHA | cut -c1-5)
+  verion: $(echo $GITHUB_SHA | cut -c1-5)
 
 on:
   push:
