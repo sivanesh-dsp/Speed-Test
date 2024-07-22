@@ -77,19 +77,14 @@ jobs:
           # Create a Dockerrun.aws.json file
           cat <<EOF > Dockerrun.aws.json
           {
-            "AWSEBDockerrunVersion": 2,
-            "containerDefinitions": [
+            "AWSEBDockerrunVersion": 1,
+            "Image": {
+              "Name": "$DOCKER_IMAGE",
+              "Update": "true"
+            },
+            "Ports": [
               {
-                "name": "web",
-                "image": "$DOCKER_IMAGE",
-                "essential": true,
-                "memory": 512,
-                "portMappings": [
-                  {
-                    "containerPort": 80,
-                    "hostPort": 80
-                  }
-                ]
+                "ContainerPort": "80"
               }
             ]
           }
