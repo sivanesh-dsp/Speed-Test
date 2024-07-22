@@ -95,7 +95,7 @@ jobs:
           aws s3 cp deploy.zip s3://$S3_BUCKET/$VERSION_LABEL-deploy.zip
 
           # Create a new application version
-          aws elasticbeanstalk create-application-version --application-name ${{ APP_NAME }} --version-label $VERSION_LABEL --source-bundle S3Bucket=$S3_BUCKET,S3Key=$VERSION_LABEL-deploy.zip
+          aws elasticbeanstalk create-application-version --application-name ${{ env.APP_NAME }} --version-label $VERSION_LABEL --source-bundle S3Bucket=$S3_BUCKET,S3Key=$VERSION_LABEL-deploy.zip
 
           # Update the environment to use the new version
           aws elasticbeanstalk update-environment --environment-name $ENVIRONMENT_NAME --version-label $VERSION_LABEL
