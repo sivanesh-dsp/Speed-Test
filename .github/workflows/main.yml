@@ -77,7 +77,7 @@ jobs:
           # Create a Dockerrun.aws.json file
           cat <<EOF > Dockerrun.aws.json
           {
-            "AWSEBDockerrunVersion": 1,
+            "AWSEBDockerrunVersion": 2,
             "Image": {
               "Name": "$DOCKER_IMAGE",
               "Update": "true"
