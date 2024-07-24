@@ -67,6 +67,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Extract ECR repository URI
+        id: ecr
+        run: |
+          echo "::set-output name=uri::$(aws ecr describe-repositories --repository-names ${{ env.APP_NAME }} --region ${{ secrets.AWS_REGION }} --query "repositories[0].repositoryUri" --output text)"
+
       - name: Provision EC2 instance
         run: |
           INSTANCE_ID=${{ secrets.INSTANCE_ID}}
