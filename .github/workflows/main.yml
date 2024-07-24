@@ -39,13 +39,6 @@ jobs:
         run: |
           echo "::set-output name=uri::$(aws ecr describe-repositories --repository-names ${{ env.APP_NAME }} --region ${{ secrets.AWS_REGION }} --query "repositories[0].repositoryUri" --output text)"
 
-      - name: Print ECR URI
-        run: echo ${{ steps.ecr.outputs.uri }}
-
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
       - name: Build and push Docker image
         run: |
           docker buildx build --platform linux/amd64 -t ${{ steps.ecr.outputs.uri }}:${{ github.sha }} --push .
@@ -53,51 +46,31 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+deploy:
+  runs-on: ubuntu-latest
+  needs: build-and-push
+  steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
 
-      - name: Deploy to Elastic Beanstalk
-        env:
-          ENVIRONMENT_NAME: Speed-test-env-1
-          VERSION_LABEL: ${{ github.sha }}
-          S3_BUCKET: elasticbeanstalk-ap-south-1-767397785039
-          DOCKER_IMAGE: ${{ steps.ecr.outputs.uri }}:${{ github.sha }}
-        run: |
-          # Create a Dockerrun.aws.json file
-          cat <<EOF > Dockerrun.aws.json
-          {
-            "AWSEBDockerrunVersion": 2,
-            "Image": {
-              "Name": "$DOCKER_IMAGE",
-              "Update": "true"
-            },
-            "Ports": [
-              {
-                "ContainerPort": "80"
-              }
-            ]
-          }
-          EOF
-
-          # Zip the Dockerrun.aws.json file
-          zip deploy.zip Dockerrun.aws.json
-
-          # Upload the zip file to S3
-          aws s3 cp deploy.zip s3://$S3_BUCKET/$VERSION_LABEL-deploy.zip
-
-          # Create a new application version
-          aws elasticbeanstalk create-application-version --application-name ${{ env.APP_NAME }} --version-label $VERSION_LABEL --source-bundle S3Bucket=$S3_BUCKET,S3Key=$VERSION_LABEL-deploy.zip
-
-          # Update the environment to use the new version
-          aws elasticbeanstalk update-environment --environment-name $ENVIRONMENT_NAME --version-label $VERSION_LABEL
+    - name: SSH and Deploy Docker Container
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_INSTANCE_IP }}
+        username: ec2-user # Replace with your EC2 instance's SSH username
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          sudo yum update -y
+          sudo amazon-linux-extras install docker
+          sudo service docker start
+          sudo usermod -a -G docker ec2-user
+          docker login -u AWS -p $(aws ecr get-login-password --region ${{ env.AWS_REGION }}) ${{ steps.ecr.outputs.uri }}
+          docker pull ${{ steps.ecr.outputs.uri }}:${{ github.sha }}
+          docker run -d -p 80:80 ${{ steps.ecr.outputs.uri }}:${{ github.sha }}
