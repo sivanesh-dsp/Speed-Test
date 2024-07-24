@@ -39,13 +39,6 @@ jobs:
         run: |
           echo "::set-output name=uri::$(aws ecr describe-repositories --repository-names ${{ env.APP_NAME }} --region ${{ secrets.AWS_REGION }} --query "repositories[0].repositoryUri" --output text)"
 
-      - name: Print ECR URI
-        run: echo ${{ steps.ecr.outputs.uri }}
-
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
       - name: Build and push Docker image
         run: |
           docker buildx build --platform linux/amd64 -t ${{ steps.ecr.outputs.uri }}:${{ github.sha }} --push .
@@ -72,11 +65,6 @@ jobs:
         run: |
           echo "::set-output name=uri::$(aws ecr describe-repositories --repository-names ${{ env.APP_NAME }} --region ${{ secrets.AWS_REGION }} --query "repositories[0].repositoryUri" --output text)"
 
-      - name: Provision EC2 instance
-        run: |
-          INSTANCE_ID=${{ secrets.INSTANCE_ID}}
-        id: provision-ec2
-
       - name: Wait for EC2 instance to be running
         run: |
           aws ec2 wait instance-running --instance-ids ${{ secrets.INSTANCE_ID}}
@@ -94,22 +82,14 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_KEY }}
           script: |
-            echo "Updating system packages..."
             sudo yum update -y
-            echo "Installing Docker..."
             sudo yum install -y docker
-            echo "Starting Docker service..."
             sudo systemctl start docker
             sudo systemctl enable docker
-            echo "Adding ec2-user to docker group..."
             sudo usermod -aG docker ec2-user
-            echo "Configuring AWS CLI..."
             aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
             aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             aws configure set region ${{ env.AWS_REGION }}
-            echo "Logging into Amazon ECR..."
             aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.ecr.outputs.uri }}
-            echo "Pulling Docker image..."
             sudo docker pull ${{ steps.ecr.outputs.uri }}:${{ github.sha }}
-            echo "Running Docker container..."
             sudo docker run -d -p 80:80 ${{ steps.ecr.outputs.uri }}:${{ github.sha }}
