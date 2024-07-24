@@ -89,13 +89,22 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_KEY }}
           script: |
+            echo "Updating system packages..."
             sudo yum update -y
-            sudo amazon-linux-extras install docker
-            sudo service docker start
-            sudo usermod -a -G docker ec2-user
+            echo "Installing Docker..."
+            sudo yum install -y docker
+            echo "Starting Docker service..."
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            echo "Adding ec2-user to docker group..."
+            sudo usermod -aG docker ec2-user
+            echo "Configuring AWS CLI..."
             aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
             aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             aws configure set region ${{ env.AWS_REGION }}
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.ecr.outputs.uri }}
-            docker pull ${{ steps.ecr.outputs.uri }}:${{ github.sha }}
-            docker run -d -p 80:80 ${{ steps.ecr.outputs.uri }}:${{ github.sha }}
+            echo "Logging into Amazon ECR..."
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.ecr.outputs.uri }}
+            echo "Pulling Docker image..."
+            sudo docker pull ${{ steps.ecr.outputs.uri }}:${{ github.sha }}
+            echo "Running Docker container..."
+            sudo docker run -d -p 80:80 ${{ steps.ecr.outputs.uri }}:${{ github.sha }}
