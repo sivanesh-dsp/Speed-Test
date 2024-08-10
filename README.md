@@ -1,12 +1,11 @@
 # Deployed on AWS EC2 Instance
 
 # CI-CD Pipeline Implementation
-CI/CD pipepline is implemented using github actions.
+CI/CD pipepline is implemented using Jenkins.
 
 Pipeline goes like this..
 
 ```commit changes``` -> ```push to main branch (triggers pipeline)``` -> ```build docker image``` -> ```push image to Amazon Container Registry``` -> ```Deploy to AWS EC2 Instance```
-
 
 
 # Speed-Test
