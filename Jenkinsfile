@@ -4,12 +4,26 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'custom_nginx_image'
         CONTAINER_NAME = 'nginx_html'
+        SONARQUBE_SERVER = 'SonarQube' // Replace with your SonarQube server name in Jenkins
+        PROJECT_KEY = 'poc' // Replace with your project key configured in SonarQube
+        SONAR_SCANNER_HOME = tool name: 'SonarQube Scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
     }
 
     stages {
         stage('Checkout') {
             steps {
                 git url: 'https://github.com/sivanesh-dsp/Speed-Test.git', branch: 'main'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    // Run SonarQube analysis
+                    withSonarQubeEnv(SONARQUBE_SERVER) {
+                        sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectKey=${PROJECT_KEY} -Dsonar.sources=."
+                    }
+                }
             }
         }
 
@@ -53,4 +67,3 @@ pipeline {
         }
     }
 }
-
