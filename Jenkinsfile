@@ -43,7 +43,7 @@ pipeline {
                     sh "docker rm -f $CONTAINER_NAME || true"
 
                     // Run the container with the built image
-                    sh "docker run -d -p 5000:80 --name $CONTAINER_NAME $DOCKER_IMAGE"
+                    sh "docker run -d -p 80:80 --name $CONTAINER_NAME $DOCKER_IMAGE"
                 }
             }
         }
@@ -52,7 +52,7 @@ pipeline {
             steps {
                 script {
                     // Test if the Nginx container is running and serving the content
-                    sh 'curl -I http://localhost:5000 | grep "200 OK"'
+                    sh 'curl -I http://localhost | grep "200 OK"'
                 }
             }
         }
